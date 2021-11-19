@@ -1,0 +1,11 @@
+# Copyright (c) 2021 Jake Swensen
+#
+# SPDX-License-Identifier: Apache-2.0
+#
+
+config COUNTER_M41T6X
+	bool "M41T6X RTC"
+	select I2C
+	select POLL
+	help
+	  Enable counter driver based on M41T6X I2C device.
