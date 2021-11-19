@@ -1,0 +1,15 @@
+/*
+ * Copyright (c) 2021 Jake Swensen
+ *
+ * SPDX-License-Identifier: Apache-2.0
+ */
+
+&i2c0 {
+	status = "okay";
+	m41t6x: m41t6x@68 {
+		compatible = "m41t6x";
+		reg = <0x68>;
+		label = "M41T6X";
+		// isw-gpios = <&gpio0 21 (GPIO_PULL_UP | GPIO_ACTIVE_LOW)>;
+	};
+};
