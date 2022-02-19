@@ -11,10 +11,9 @@
 #include <drivers/i2c.h>
 #include <kernel.h>
 #include <logging/log.h>
-#include <sys/printk.h>
 #include <sys/timeutil.h>
 
-// LOG_MODULE_REGISTER(M41T6X, CONFIG_COUNTER_LOG_LEVEL);
+LOG_MODULE_REGISTER(M41T6X, CONFIG_COUNTER_LOG_LEVEL);
 
 struct regmap {
 	struct {
@@ -103,7 +102,7 @@ struct m41t6x_config {
 struct m41t6x_data {
 	const struct device *m41t6x;
 	const struct device *i2c;
-	struct regmap reisters;
+	struct regmap registers;
 
 	struct k_sem lock;
 
@@ -139,7 +138,24 @@ struct m41t6x_data {
 	bool sync_signal;
 };
 
-int m41t6x_ds3231_get_alarm(const struct device *dev,
+static int update_registers(const struct device *dev)
+{
+	struct m41t6x_data *data = dev->data;
+	const struct m41t6x_config *cfg = dev->config;
+	int rc = 0;
+	uint8_t addr = 0;
+
+	rc = i2c_write_read(data->i2c, cfg->addr, &addr, sizeof(addr), &data->registers, sizeof(data->registers));
+	if (rc < 0) {
+		return rc;
+	}
+
+	// TODO: decode rtc
+
+	return rc;
+}
+
+int m41t6x_get_alarm(const struct device *dev,
 			   uint8_t id,
 			   const struct counter_alarm_cfg *alarm_cfg)
 {
@@ -172,8 +188,40 @@ static int m41t6x_counter_get_value(const struct device *dev,
 
 static int m41t6x_init(const struct device *dev)
 {
-	printk("m41t6x_init\n");
-	return 0;
+	LOG_INF("m41t6x_init");
+	LOG_DBG("m41t6x_init, debug msg");
+
+	struct m41t6x_data *data = dev->data;
+	const struct m41t6x_config *cfg = dev->config;
+	const struct device *i2c = device_get_binding(cfg->bus_name);
+	int rc;
+
+	k_sem_init(&data->lock, 0, 1);
+
+	data->m41t6x = dev;
+	if (!i2c) {
+		LOG_WRN("Failed to aquire I2C %s", cfg->bus_name);
+		rc = -EINVAL;
+		goto out;
+	}
+
+	data->i2c = i2c;
+	rc = update_registers(dev);
+	if (rc < 0) {
+		LOG_WRN("Failed to fetch registers: %d", rc);
+		goto out;
+	}
+
+out:
+	k_sem_give(&data->lock);
+
+	LOG_DBG("Initialized: %d", rc);
+	if (rc > 0) {
+		LOG_WRN("rc was non-zero, discarding.");
+		rc = 0;
+	}
+
+	return rc;
 }
 
 static int m41t6x_counter_start(const struct device *dev)
