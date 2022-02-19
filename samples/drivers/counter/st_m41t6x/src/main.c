@@ -8,6 +8,10 @@
 #include <device.h>
 #include <devicetree.h>
 #include <drivers/gpio.h>
+#include <sys/printk.h>
+#include <logging/log.h>
+
+LOG_MODULE_REGISTER(MAIN, 3);
 
 /* 1000 msec = 1 sec */
 #define SLEEP_TIME_MS   1000
@@ -51,6 +55,10 @@ void main(void)
 	if (ret < 0) {
 		return;
 	}
+
+	printk("Starting RTC sample.\n");
+	LOG_INF("Starting RTC sample.");
+	LOG_INF("Test info");
 
 	while (1) {
 		gpio_pin_set(led, PIN, (int)led_is_on);
